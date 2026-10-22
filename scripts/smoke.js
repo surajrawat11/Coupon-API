@@ -208,6 +208,72 @@ async function main() {
     (body) => Array.isArray(body.coupons)
   );
 
+  // 15. Reject a missing coupon code
+  await test(
+    "Missing coupon code rejected",
+    "/coupons",
+    jsonRequest("POST", {
+      discountPercent: 10,
+      expiresAt: expiry,
+    }),
+    400
+  );
+
+  // 16. Reject a missing expiry date
+  await test(
+    "Missing expiry date rejected",
+    "/coupons",
+    jsonRequest("POST", {
+      code: "NOEXPIRY",
+      discountPercent: 10,
+    }),
+    400
+  );
+
+  // 17. Reject a discount above 90%
+  await test(
+    "Discount above maximum rejected",
+    "/coupons",
+    jsonRequest("POST", {
+      code: "HIGHDISC",
+      discountPercent: 91,
+      expiresAt: expiry,
+    }),
+    400
+  );
+
+  // 18. Reject a string representation of Infinity
+  await test(
+    "String Infinity amount rejected",
+    "/coupons/apply",
+    jsonRequest("POST", {
+      code: "UNKNOWN999",
+      amount: "Infinity",
+    }),
+    400
+  );
+
+  // 19. Reject a null purchase amount
+  await test(
+    "Null purchase amount rejected",
+    "/coupons/apply",
+    jsonRequest("POST", {
+      code: "UNKNOWN999",
+      amount: null,
+    }),
+    400
+  );
+
+  // 20. Reject an invalid coupon code during application
+  await test(
+    "Invalid coupon code on application rejected",
+    "/coupons/apply",
+    jsonRequest("POST", {
+      code: "BAD@10",
+      amount: 100,
+    }),
+    400
+  );
   console.log(`\nSmoke tests: ${passed} passed, ${failed} failed`);
 
   if (failed > 0) {
@@ -219,3 +285,4 @@ main().catch((error) => {
   console.error("Smoke test runner failed:", error);
   process.exitCode = 1;
 });
+
