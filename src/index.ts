@@ -1,17 +1,44 @@
-import express from "express";
+import express, { type ErrorRequestHandler } from "express";
 import { config } from "./config.js";
 import { connectDB } from "./db.js";
 import couponRoutes from "./coupon.routes.js";
 
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "10kb" }));
 
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
 app.use("/coupons", couponRoutes);
+
+// Handle malformed JSON and oversized request bodies.
+const jsonErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
+  if (err instanceof SyntaxError && "body" in err) {
+    return res.status(400).json({
+      error: {
+        code: "INVALID_JSON",
+        message: "Request body contains invalid JSON",
+      },
+    });
+  }
+
+  if (typeof err === "object" && err !== null && "type" in err) {
+    if (err.type === "entity.too.large") {
+      return res.status(413).json({
+        error: {
+          code: "PAYLOAD_TOO_LARGE",
+          message: "Request body must not exceed 10 KB",
+        },
+      });
+    }
+  }
+
+  return next(err);
+};
+
+app.use(jsonErrorHandler);
 
 async function startServer(): Promise<void> {
   await connectDB();
