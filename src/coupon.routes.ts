@@ -1,26 +1,26 @@
+
 import { Router } from "express";
-import { CouponModel } from "./coupon.model.js";
+import { createCoupon } from "./coupon.service.js";
 import { createCouponSchema } from "./coupon.validation.js";
 
 const router = Router();
 
-// Create a coupon
 router.post("/", async (req, res) => {
   const result = createCouponSchema.safeParse(req.body);
 
   if (!result.success) {
     return res.status(400).json({
-      error: "Validation failed",
-      details: result.error.issues,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: result.error.issues
+          .map((issue) => issue.message)
+          .join(", "),
+      },
     });
   }
 
   try {
-    const coupon = await CouponModel.create({
-      ...result.data,
-      code: result.data.code.toUpperCase(),
-    });
-
+    const coupon = await createCoupon(result.data);
     return res.status(201).json({ coupon });
   } catch (error: unknown) {
     if (
@@ -29,11 +29,22 @@ router.post("/", async (req, res) => {
       "code" in error &&
       error.code === 11000
     ) {
-      return res.status(409).json({ error: "Coupon code already exists" });
+      return res.status(409).json({
+        error: {
+          code: "COUPON_ALREADY_EXISTS",
+          message: "A coupon with this code already exists",
+        },
+      });
     }
 
     console.error("Failed to create coupon:", error);
-    return res.status(500).json({ error: "Internal server error" });
+
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred",
+      },
+    });
   }
 });
 

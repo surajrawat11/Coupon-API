@@ -1,3 +1,4 @@
+
 import mongoose, { Schema, type InferSchemaType } from "mongoose";
 
 const couponSchema = new Schema(
@@ -8,24 +9,19 @@ const couponSchema = new Schema(
       unique: true,
       trim: true,
       uppercase: true,
+      minlength: 3,
+      maxlength: 32,
+      match: /^[A-Z0-9_-]+$/,
     },
-    discountType: {
-      type: String,
-      enum: ["percentage", "fixed"],
-      required: true,
-    },
-    discountValue: {
+    discountPercent: {
       type: Number,
       required: true,
-      min: 0,
+      min: 1,
+      max: 90,
     },
-    expiryDate: {
+    expiresAt: {
       type: Date,
       required: true,
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
     },
   },
   { timestamps: true }

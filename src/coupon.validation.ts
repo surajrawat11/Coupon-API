@@ -1,36 +1,30 @@
+
 import { z } from "zod";
 
 export const createCouponSchema = z.object({
   code: z
     .string()
     .trim()
-    .min(1, "Coupon code is required")
-    .max(50, "Coupon code must be 50 characters or fewer")
-    .regex(/^[A-Za-z0-9_-]+$/, "Coupon code contains invalid characters"),
+    .min(3, "Coupon code must be at least 3 characters")
+    .max(32, "Coupon code must be 32 characters or fewer")
+    .regex(
+      /^[A-Za-z0-9_-]+$/,
+      "Coupon code may contain only letters, numbers, hyphens, and underscores"
+    ),
 
-  discountType: z.enum(["percentage", "fixed"]),
+  discountPercent: z
+    .number({
+      error: "Discount percent must be a number",
+    })
+    .min(1, "Discount percent must be at least 1")
+    .max(90, "Discount percent cannot exceed 90"),
 
-  discountValue: z.number().positive("Discount value must be greater than zero"),
-
-  expiryDate: z.coerce.date(),
-
-  isActive: z.boolean().optional().default(true),
-}).superRefine((coupon, ctx) => {
-  if (coupon.discountType === "percentage" && coupon.discountValue > 100) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["discountValue"],
-      message: "Percentage discount cannot exceed 100",
-    });
-  }
-
-  if (Number.isNaN(coupon.expiryDate.getTime())) {
-    ctx.addIssue({
-      code: "custom",
-      path: ["expiryDate"],
-      message: "Expiry date must be a valid date",
-    });
-  }
+  expiresAt: z.iso.datetime({
+    message: "Expiry must be a valid ISO 8601 date-time",
+  }).refine(
+    (value) => new Date(value).getTime() > Date.now(),
+    "Expiry date must be in the future"
+  ),
 });
 
 export type CreateCouponInput = z.infer<typeof createCouponSchema>;
