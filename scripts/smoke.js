@@ -274,6 +274,42 @@ async function main() {
     }),
     400
   );
+  // 21. Reject an unknown route
+  await test(
+    "Unknown route rejected",
+    "/nothing-here",
+    {},
+    404
+  );
+
+  // 22. Create a coupon that expires shortly, then verify it is rejected.
+  const shortExpiry = new Date(Date.now() + 3000).toISOString();
+  const shortCode = `EXP${Date.now()}`;
+
+  const shortCoupon = await test(
+    "Create short-lived coupon",
+    "/coupons",
+    jsonRequest("POST", {
+      code: shortCode,
+      discountPercent: 20,
+      expiresAt: shortExpiry,
+    }),
+    201
+  );
+
+  if (shortCoupon?.ok) {
+    await new Promise((resolve) => setTimeout(resolve, 4000));
+
+    await test(
+      "Expired coupon rejected",
+      "/coupons/apply",
+      jsonRequest("POST", {
+        code: shortCode,
+        amount: 100,
+      }),
+      410
+    );
+  }
   console.log(`\nSmoke tests: ${passed} passed, ${failed} failed`);
 
   if (failed > 0) {
@@ -285,4 +321,5 @@ main().catch((error) => {
   console.error("Smoke test runner failed:", error);
   process.exitCode = 1;
 });
+
 
