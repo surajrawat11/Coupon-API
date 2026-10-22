@@ -1,10 +1,12 @@
 
 import { Router } from "express";
+import { CouponModel } from "./coupon.model.js";
 import { createCoupon } from "./coupon.service.js";
 import { createCouponSchema } from "./coupon.validation.js";
 
 const router = Router();
 
+// Create a coupon
 router.post("/", async (req, res) => {
   const result = createCouponSchema.safeParse(req.body);
 
@@ -21,6 +23,7 @@ router.post("/", async (req, res) => {
 
   try {
     const coupon = await createCoupon(result.data);
+
     return res.status(201).json({ coupon });
   } catch (error: unknown) {
     if (
@@ -38,6 +41,33 @@ router.post("/", async (req, res) => {
     }
 
     console.error("Failed to create coupon:", error);
+
+    return res.status(500).json({
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected error occurred",
+      },
+    });
+  }
+});
+
+// List coupons, newest first
+router.get("/", async (_req, res) => {
+  try {
+    const coupons = await CouponModel.find()
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const now = Date.now();
+
+    const results = coupons.map((coupon) => ({
+      ...coupon,
+      expired: new Date(coupon.expiresAt).getTime() <= now,
+    }));
+
+    return res.status(200).json({ coupons: results });
+  } catch (error: unknown) {
+    console.error("Failed to list coupons:", error);
 
     return res.status(500).json({
       error: {
