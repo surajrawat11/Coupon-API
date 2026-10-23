@@ -19,16 +19,17 @@ export const createCouponSchema = z.object({
     .min(1, "Discount percent must be at least 1")
     .max(90, "Discount percent cannot exceed 90"),
 
-  expiresAt: z.iso.datetime({
-    message: "Expiry must be a valid ISO 8601 date-time",
-  }).refine(
-    (value) => new Date(value).getTime() > Date.now(),
-    "Expiry date must be in the future"
-  ),
+  expiresAt: z
+    .iso.datetime({
+      message: "Expiry must be a valid ISO 8601 date-time",
+    })
+    .refine(
+      (value) => new Date(value).getTime() > Date.now(),
+      "Expiry date must be in the future"
+    ),
 });
 
 export type CreateCouponInput = z.infer<typeof createCouponSchema>;
-
 
 export const applyCouponSchema = z.object({
   code: z
@@ -46,7 +47,12 @@ export const applyCouponSchema = z.object({
       error: "Amount must be a number",
     })
     .finite("Amount must be finite")
-    .min(0, "Amount cannot be negative"),
+    .min(0, "Amount cannot be negative")
+    .refine(
+      (value) =>
+        Math.abs(value * 100 - Math.round(value * 100)) < 1e-8,
+      "Amount must have at most two decimal places"
+    ),
 });
 
 export type ApplyCouponInput = z.infer<typeof applyCouponSchema>;

@@ -1,4 +1,5 @@
-﻿import { describe, expect, it } from "vitest";
+﻿
+import { describe, expect, it } from "vitest";
 import {
   applyCouponSchema,
   createCouponSchema,
@@ -100,4 +101,32 @@ describe("applyCouponSchema", () => {
       }).success
     ).toBe(false);
   });
+
+  it("accepts zero amount", () => {
+    expect(
+      applyCouponSchema.safeParse({
+        ...validApplication,
+        amount: 0,
+      }).success
+    ).toBe(true);
+  });
+
+  it("accepts amounts with two decimal places", () => {
+    expect(
+      applyCouponSchema.safeParse({
+        ...validApplication,
+        amount: 99.99,
+      }).success
+    ).toBe(true);
+  });
+
+  it("rejects amounts with more than two decimal places", () => {
+    expect(
+      applyCouponSchema.safeParse({
+        ...validApplication,
+        amount: 10.126,
+      }).success
+    ).toBe(false);
+  });
 });
+
