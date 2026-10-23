@@ -1,16 +1,24 @@
+
 import express, { type ErrorRequestHandler } from "express";
+import swaggerUi from "swagger-ui-express";
 import { config } from "./config.js";
 import { connectDB } from "./db.js";
 import couponRoutes from "./coupon.routes.js";
+import openapi from "./openapi.js";
 
 const app = express();
 
 app.use(express.json({ limit: "10kb" }));
 
+// API documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openapi));
+
+// Health check
 app.get("/health", (_req, res) => {
   res.status(200).json({ status: "ok" });
 });
 
+// Coupon routes
 app.use("/coupons", couponRoutes);
 
 // Handle malformed JSON and oversized request bodies.
